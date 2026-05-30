@@ -57,7 +57,7 @@ export default function LandingPage() {
           </div>
           
           <h1 className="text-5xl sm:text-8xl lg:text-[110px] font-extrabold tracking-tight text-white leading-[1.05] max-w-5xl mx-auto">
-            The AI cofounder that makes your company autonomous
+            The Agentic framework that makes your company autonomous
           </h1>
           
           <p className="text-sm sm:text-base text-neutral-400 max-w-2xl mx-auto leading-relaxed font-mono">
