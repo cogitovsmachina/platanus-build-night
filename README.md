@@ -70,8 +70,3 @@ wardenclyffe/
 ```
 
 ---
-
-### ⚠️ Deploying & Mirroring Info
-Your local environment is configured to mirror all changes. Pushing will update:
-1. This organization repo: `https://github.com/platanus-build-night/platanus-build-night-26-mx-cogitovsmachina.git`
-2. Your personal repo: `https://github.com/cogitovsmachina/platanus-build-night.git`
