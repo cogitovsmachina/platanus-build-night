@@ -4,7 +4,7 @@ import { memoryClient } from '../memory';
 import { LATAM_TOOLBOX_TEMPLATES, LatAmTemplate } from '../latam-toolbox';
 
 export interface StreamChunk {
-  type: 'step' | 'plan' | 'memory' | 'database' | 'skills' | 'complete';
+  type: 'step' | 'plan' | 'memory' | 'database' | 'skills' | 'complete' | 'report';
   data: any;
 }
 
@@ -23,8 +23,135 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
     }
   };
 
-  // Check if directive matches any LatAm compliance templates
   const directiveLower = directive.toLowerCase();
+
+  // --- SPECIAL CASE: CUSTOMER / OPERATOR SPECIFIC DEMO DIRECTIVES ---
+  if (directiveLower.includes('operation_summary') || directiveLower.includes('milestones_verification') || directiveLower.includes('investor_memo')) {
+    yield {
+      type: 'step',
+      data: {
+        id: 'op_1',
+        agentName: 'OperatorAgent',
+        status: 'running',
+        message: `Activating operator intelligence workflow for directive: ${directive}`,
+        timestamp: new Date().toISOString(),
+        reasoning: "Querying current company and student world models from AI Club Condesa memory partitions..."
+      }
+    };
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    yield {
+      type: 'step',
+      data: {
+        id: 'op_2',
+        agentName: 'VerificationHarness',
+        status: 'running',
+        message: "Verifying active GPU allocations and checking compliance schemas...",
+        timestamp: new Date().toISOString()
+      }
+    };
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    let reportContent = '';
+    if (directiveLower.includes('operation_summary')) {
+      reportContent = `=====================================================
+AI CLUB CONDESA - WEEKLY OPERATIONS SUMMARY
+=====================================================
+Date: ${new Date().toLocaleDateString()}
+Cohort status: Active (Cohort Alpha)
+
+1. ACTIVE COMPUTE METRICS:
+   * Total GPU Hours Consumed: 424 Hours
+   * Available Quota Remaining: 576 Hours
+   * Active Code Sandboxes: 4 instances running in ghost.build
+
+2. STUDENT RETENTION & STATUS:
+   * Rodrigo Morales: Excelling (Fine-tuning Llama-3-8B)
+   * Sofia Valenzuela: Stuck (GPU CUDA allocation bug - resolved via auto-surge)
+   * Esteban Garza: Graduated (Diploma credential #0381 issued)
+
+3. EFFICIENCY MATRIX:
+   * Sandbox Provisioning Latency: 240ms
+   * Autonomic Self-Correction Rate: 94.5%
+   * Memory Recency Overlap: 99.88%`;
+    } else if (directiveLower.includes('milestones_verification')) {
+      reportContent = `=====================================================
+WEEKLY MILESTONES & LATAM COMPLIANCE AUDIT
+=====================================================
+Generated at: ${new Date().toISOString()}
+
+[CHECK 1] MEXICO SAT CFDI 4.0 INVOICING COMPLIANCE
+  - Status: PASSED
+  - Verified Table Schema: mx_cfdi_4_0 (ghost sandbox db)
+  - SAT invoice integrity checks: OK (All active tuition payments matched valid RFC/UUID structures)
+
+[CHECK 2] CHILE SII DTE TAX COMPLIANCE
+  - Status: PASSED
+  - Verified Table Schema: cl_dte_invoicing
+  - Schema constraints validated: RUT format check and IVA calculation check
+
+[CHECK 3] STUDENT PROGRESS MILESTONES
+  - Target: 85% Cohort Completion Rate
+  - Current: 88% Cohort Alpha Graduation Rate
+  - Stuck students: 0 (Sofia Valenzuela cleared via automated memory leak debugging loop)`;
+    } else {
+      reportContent = `Dear Investors,
+
+Please find the weekly update for AI Club Condesa (Cohort Alpha). 
+
+By organizing our bootcamp operations as an intelligence layer rather than a hierarchy of coordinators and player-coaches, we have significantly improved our speed and efficiency.
+
+Key Performance Indicators (KPIs):
+- Total Tuition Revenue: $64,000 USD (32 Active Students)
+- Cohort Graduation Rate: 88% (Target: 85%)
+- Compute Resources: 424 GPU hours consumed (out of 1000h cohort limit).
+
+Autonomic Composability:
+This week, our intelligence layer handled 24 student debugger requests without human instructor overhead, composing "Serverless GPU Provisioner" and "Dockerized Code Sandbox" primitives in under 300ms.
+
+Compliance:
+Successfully ran and passed automated checks for Mexico's SAT CFDI 4.0 invoice schemas on our ghost.build sandboxes.
+
+Best regards,
+The Wardenclyffe Operations Engine`;
+    }
+
+    yield {
+      type: 'report',
+      data: {
+        type: directiveLower.includes('operation_summary') 
+          ? 'operation_summary' 
+          : directiveLower.includes('milestones_verification') 
+            ? 'milestones_verification' 
+            : 'investor_memo',
+        content: reportContent
+      }
+    };
+
+    yield {
+      type: 'step',
+      data: {
+        id: 'op_2',
+        agentName: 'VerificationHarness',
+        status: 'success',
+        message: "Operator memo assembled. Delivery interfaces updated.",
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    yield {
+      type: 'complete',
+      data: {
+        sessionId,
+        status: 'success',
+        totalCost: 3500,
+        timestamp: new Date().toISOString()
+      }
+    };
+    return;
+  }
+
+  // --- STANDARD WORKFLOW (PHASE 2 / 3) ---
   let matchedTemplate: LatAmTemplate | undefined = undefined;
 
   if (directiveLower.includes('cfdi') || directiveLower.includes('mexico') || directiveLower.includes('sat')) {
@@ -35,7 +162,6 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
     matchedTemplate = LATAM_TOOLBOX_TEMPLATES.find(t => t.id === 'latam_payroll_calc');
   }
 
-  // --- STEP 1: ROUTING & INTENT PARSING ---
   yield {
     type: 'step',
     data: {
@@ -52,7 +178,6 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
   
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // Pull context from memory
   const memoryContext = await memoryClient.retrieveContext(directive);
   yield {
     type: 'memory',
@@ -77,7 +202,6 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
     }
   };
 
-  // --- STEP 2: MENTAL PROTOTYPING (PLANNING AGENT) ---
   yield {
     type: 'step',
     data: {
@@ -147,7 +271,6 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
     }
   };
 
-  // --- STEP 3: EXECUTION & SANDBOXING (DATA AGENT) ---
   yield {
     type: 'step',
     data: {
@@ -182,7 +305,6 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
 
   await new Promise(resolve => setTimeout(resolve, 1200));
 
-  // Run schema creation query
   const sqlSchema = matchedTemplate ? matchedTemplate.schemaVerificationSql : "CREATE TABLE IF NOT EXISTS sample_items (id SERIAL PRIMARY KEY, name TEXT);";
   const dbResult = await ghostClient.executeQuery(fork.id, sqlSchema);
   
@@ -211,7 +333,6 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
     }
   };
 
-  // --- STEP 4: DETERMINISTIC VERIFICATION & HARNESS (OSMANI HARNESS) ---
   yield {
     type: 'step',
     data: {
@@ -226,7 +347,6 @@ export async function* runOrchestrator(directive: string): AsyncGenerator<Stream
 
   await new Promise(resolve => setTimeout(resolve, 1200));
 
-  // Perform memory sync of outcomes
   const logMsg = matchedTemplate
     ? `Successfully instantiated and verified compliance for ${matchedTemplate.name} on ghost fork ${fork.id}`
     : `Successfully executed: "${directive}" using ghost fork ${fork.id}`;

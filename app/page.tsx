@@ -8,10 +8,11 @@ import { SandboxDBPanel } from '@/components/SandboxDBPanel';
 import { McpSkillsPanel } from '@/components/McpSkillsPanel';
 import { LatAmToolboxPanel } from '@/components/LatAmToolboxPanel';
 import { BootcampPanel } from '@/components/BootcampPanel';
+import { OperatorConsole } from '@/components/OperatorConsole';
 import { AgentStep, MentalPlan, MemorySegment, DatabaseFork } from '@/types';
 import { memoryClient } from '@/lib/memory';
 import { ghostClient } from '@/lib/ghost';
-import { Info, Globe, HardDrive } from 'lucide-react';
+import { Info, Globe, HardDrive, ShieldAlert, Cpu } from 'lucide-react';
 
 interface LoadedSkill {
   name: string;
@@ -19,6 +20,7 @@ interface LoadedSkill {
 }
 
 export default function Home() {
+  const [isDevMode, setIsDevMode] = React.useState(false);
   const [isRunning, setIsRunning] = React.useState(false);
   const [steps, setSteps] = React.useState<AgentStep[]>([]);
   const [plan, setPlan] = React.useState<MentalPlan | null>(null);
@@ -26,6 +28,12 @@ export default function Home() {
   const [activeForks, setActiveForks] = React.useState<DatabaseFork[]>([]);
   const [loadedSkills, setLoadedSkills] = React.useState<LoadedSkill[]>([]);
   
+  // Operator-focused report output
+  const [activeReport, setActiveReport] = React.useState<{
+    type: 'operation_summary' | 'milestones_verification' | 'investor_memo' | null;
+    content: string;
+  } | null>(null);
+
   // Bootcamp initial mock state
   const [bootcampData, setBootcampData] = React.useState<any>({
     capabilities: [],
@@ -104,6 +112,8 @@ export default function Home() {
               setPlan(chunk.data as MentalPlan);
             } else if (chunk.type === 'skills') {
               setLoadedSkills(chunk.data.loaded as LoadedSkill[]);
+            } else if (chunk.type === 'report') {
+              setActiveReport(chunk.data);
             } else if (chunk.type === 'memory' || chunk.type === 'database') {
               await loadSystemState();
             }
@@ -120,6 +130,11 @@ export default function Home() {
     }
   };
 
+  const handleRunOperatorAction = (actionType: 'operation_summary' | 'milestones_verification' | 'investor_memo') => {
+    setActiveReport(null);
+    handleRunDirective(actionType);
+  };
+
   if (systemLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-neutral-400 font-mono text-sm">
@@ -134,8 +149,8 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-neutral-100 flex flex-col selection:bg-violet-900/40 font-sans">
       {/* Top Banner / Navigation */}
-      <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-55">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-900/30">
               <span className="font-mono font-bold text-lg text-white">W</span>
@@ -146,7 +161,7 @@ export default function Home() {
                   Wardenclyffe Console
                 </h1>
                 <span className="px-1.5 py-0.5 rounded bg-violet-950/50 border border-violet-800/40 text-[9px] text-violet-400 font-mono">
-                  v2.1.0-edge
+                  v2.2.0-edge
                 </span>
               </div>
               <p className="text-xs text-neutral-400">
@@ -155,14 +170,32 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-mono text-neutral-400">
-            <div className="flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-blue-400" />
-              <span>LatAm Optimized</span>
+          <div className="flex items-center gap-6">
+            {/* View Mode Switcher */}
+            <div className="bg-neutral-900 border border-neutral-800 rounded-full p-1 flex items-center gap-1">
+              <button
+                onClick={() => setIsDevMode(false)}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition ${!isDevMode ? 'bg-indigo-650 text-white shadow-sm' : 'text-neutral-400 hover:text-neutral-200'}`}
+              >
+                Operator Mode
+              </button>
+              <button
+                onClick={() => setIsDevMode(true)}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition flex items-center gap-1 ${isDevMode ? 'bg-violet-650 text-white shadow-sm' : 'text-neutral-400 hover:text-neutral-200'}`}
+              >
+                Developer Mode
+              </button>
             </div>
-            <div className="flex items-center gap-1.5">
-              <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Vercel Edge Stack</span>
+
+            <div className="hidden sm:flex items-center gap-4 text-xs font-mono text-neutral-400 border-l border-neutral-800 pl-6">
+              <div className="flex items-center gap-1.5 font-sans">
+                <Globe className="w-3.5 h-3.5 text-blue-400" />
+                <span>LatAm Dev</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-sans">
+                <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Vercel Edge</span>
+              </div>
             </div>
           </div>
         </div>
@@ -178,46 +211,63 @@ export default function Home() {
           </div>
           <div className="space-y-1">
             <h4 className="text-xs font-semibold text-neutral-200">
-              Jack Dorsey "From Hierarchy to Intelligence" Integration
+              {isDevMode ? "Developer Mode Active" : "Operator Mode Active"}
             </h4>
             <p className="text-[11px] text-neutral-400 leading-normal">
-              Modeling the organizational primitives of the Condesa AI Bootcamp. The intelligence layer dynamically composes serverless compute, memory logs, credentials, and code sandboxes in response to student state metrics without manager mediation.
+              {isDevMode 
+                ? "Showing full developer outputs, JSON-RPC 2.0 trace payloads, active database forks, and episodic memory segment maps."
+                : "A polished dashboard simulating Jack Dorsey's 'Hierarchy to Intelligence' ecosystem. Run weekly milestone checks or generate investor reports with no verbose logs."}
             </p>
           </div>
         </div>
 
-        {/* Dashboard Grid - Row 1 (Console Core) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          <div className="lg:col-span-4 flex flex-col">
-            <ControlPanel onRunDirective={handleRunDirective} isRunning={isRunning} />
+        {!isDevMode ? (
+          /* OPERATOR MODE INTERFACE */
+          <div className="space-y-6">
+            <OperatorConsole
+              onRunAction={handleRunOperatorAction}
+              isRunning={isRunning}
+              activeResult={activeReport}
+            />
+            <BootcampPanel initialData={bootcampData} />
           </div>
-          <div className="lg:col-span-8 flex flex-col">
-            <TraceViewer steps={steps} plan={plan} isRunning={isRunning} />
+        ) : (
+          /* DEVELOPER MODE INTERFACE */
+          <div className="space-y-6">
+            {/* Console Core */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              <div className="lg:col-span-4 flex flex-col">
+                <ControlPanel onRunDirective={handleRunDirective} isRunning={isRunning} />
+              </div>
+              <div className="lg:col-span-8 flex flex-col">
+                <TraceViewer steps={steps} plan={plan} isRunning={isRunning} />
+              </div>
+            </div>
+
+            {/* AI Bootcamp Panel */}
+            <BootcampPanel initialData={bootcampData} />
+
+            {/* LatAm & MCP Toolsets */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <LatAmToolboxPanel onRunTemplate={handleRunDirective} isRunning={isRunning} />
+              <McpSkillsPanel loadedSkills={loadedSkills} mcpUrl="/api/mcp" />
+            </div>
+
+            {/* Sub-layers */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <MemoryPanel
+                memorySegments={memorySegments}
+                onRefresh={loadSystemState}
+                isLoading={isRunning}
+              />
+              <SandboxDBPanel
+                forks={activeForks}
+                onRefresh={loadSystemState}
+                isLoading={isRunning}
+              />
+            </div>
           </div>
-        </div>
-
-        {/* AI Bootcamp Panel */}
-        <BootcampPanel initialData={bootcampData} />
-
-        {/* Dashboard Grid - Row 2 (LatAm & MCP Toolsets) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <LatAmToolboxPanel onRunTemplate={handleRunDirective} isRunning={isRunning} />
-          <McpSkillsPanel loadedSkills={loadedSkills} mcpUrl="/api/mcp" />
-        </div>
-
-        {/* Dashboard Grid - Row 3 (Sub-layers) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <MemoryPanel
-            memorySegments={memorySegments}
-            onRefresh={loadSystemState}
-            isLoading={isRunning}
-          />
-          <SandboxDBPanel
-            forks={activeForks}
-            onRefresh={loadSystemState}
-            isLoading={isRunning}
-          />
-        </div>
+        )}
       </div>
 
       {/* Footer */}
