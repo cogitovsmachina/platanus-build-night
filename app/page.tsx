@@ -7,10 +7,11 @@ import { MemoryPanel } from '@/components/MemoryPanel';
 import { SandboxDBPanel } from '@/components/SandboxDBPanel';
 import { McpSkillsPanel } from '@/components/McpSkillsPanel';
 import { LatAmToolboxPanel } from '@/components/LatAmToolboxPanel';
+import { BootcampPanel } from '@/components/BootcampPanel';
 import { AgentStep, MentalPlan, MemorySegment, DatabaseFork } from '@/types';
 import { memoryClient } from '@/lib/memory';
 import { ghostClient } from '@/lib/ghost';
-import { Info, Globe, HardDrive, Shield } from 'lucide-react';
+import { Info, Globe, HardDrive } from 'lucide-react';
 
 interface LoadedSkill {
   name: string;
@@ -24,19 +25,30 @@ export default function Home() {
   const [memorySegments, setMemorySegments] = React.useState<MemorySegment[]>([]);
   const [activeForks, setActiveForks] = React.useState<DatabaseFork[]>([]);
   const [loadedSkills, setLoadedSkills] = React.useState<LoadedSkill[]>([]);
+  
+  // Bootcamp initial mock state
+  const [bootcampData, setBootcampData] = React.useState<any>({
+    capabilities: [],
+    companyModel: { cohortName: '', totalStudents: 0, graduationRate: 0, totalGpuHoursUsed: 0, gpuLimitHours: 0, activeSandboxes: 0, tuitionRevenue: 0 },
+    studentModels: [],
+    compositions: []
+  });
+  
   const [systemLoading, setSystemLoading] = React.useState(true);
 
   // Load initial data
   const loadSystemState = React.useCallback(async () => {
     try {
-      const [mem, db] = await Promise.all([
+      const [mem, db, bootcampRes] = await Promise.all([
         memoryClient.getFullHistory(),
-        ghostClient.getActiveForks()
+        ghostClient.getActiveForks(),
+        fetch('/api/bootcamp').then(r => r.json())
       ]);
       setMemorySegments(mem);
       setActiveForks(db);
+      setBootcampData(bootcampRes);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to load states:", e);
     } finally {
       setSystemLoading(false);
     }
@@ -93,7 +105,6 @@ export default function Home() {
             } else if (chunk.type === 'skills') {
               setLoadedSkills(chunk.data.loaded as LoadedSkill[]);
             } else if (chunk.type === 'memory' || chunk.type === 'database') {
-              // Trigger state reload to show changes in DB or memory panels
               await loadSystemState();
             }
           } catch (e) {
@@ -121,7 +132,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-neutral-100 flex flex-col selection:bg-violet-900/40">
+    <main className="min-h-screen bg-black text-neutral-100 flex flex-col selection:bg-violet-900/40 font-sans">
       {/* Top Banner / Navigation */}
       <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -135,7 +146,7 @@ export default function Home() {
                   Wardenclyffe Console
                 </h1>
                 <span className="px-1.5 py-0.5 rounded bg-violet-950/50 border border-violet-800/40 text-[9px] text-violet-400 font-mono">
-                  v2.0.0-edge
+                  v2.1.0-edge
                 </span>
               </div>
               <p className="text-xs text-neutral-400">
@@ -159,33 +170,34 @@ export default function Home() {
 
       {/* Main Container */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-        {/* LatAm Token-Maxing Advisory */}
+        
+        {/* Banner Alert */}
         <div className="bg-gradient-to-r from-violet-950/15 via-indigo-950/15 to-neutral-950/20 border border-violet-900/30 rounded-2xl p-4 flex gap-3.5 items-start">
           <div className="p-2 bg-violet-900/20 border border-violet-800/30 rounded-lg text-violet-400">
             <Info className="w-4 h-4" />
           </div>
           <div className="space-y-1">
             <h4 className="text-xs font-semibold text-neutral-200">
-              Phase 2 & 3 Integration: Persistent Memory & Local MCP Server
+              Jack Dorsey "From Hierarchy to Intelligence" Integration
             </h4>
             <p className="text-[11px] text-neutral-400 leading-normal">
-              Exposing a local JSON-RPC 2.0 Model Context Protocol (MCP) server for tool-calling databases and memory layers. Applying reusable framework skills (Tesla Planning, Osmani Harness TDD) to secure localized SMB compliance workflows in Mexico and Chile.
+              Modeling the organizational primitives of the Condesa AI Bootcamp. The intelligence layer dynamically composes serverless compute, memory logs, credentials, and code sandboxes in response to student state metrics without manager mediation.
             </p>
           </div>
         </div>
 
         {/* Dashboard Grid - Row 1 (Console Core) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          {/* Controller - Left Column */}
           <div className="lg:col-span-4 flex flex-col">
             <ControlPanel onRunDirective={handleRunDirective} isRunning={isRunning} />
           </div>
-
-          {/* Trace Viewer - Right Column */}
           <div className="lg:col-span-8 flex flex-col">
             <TraceViewer steps={steps} plan={plan} isRunning={isRunning} />
           </div>
         </div>
+
+        {/* AI Bootcamp Panel */}
+        <BootcampPanel initialData={bootcampData} />
 
         {/* Dashboard Grid - Row 2 (LatAm & MCP Toolsets) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
